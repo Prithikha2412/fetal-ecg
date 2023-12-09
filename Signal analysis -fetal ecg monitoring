@@ -1,0 +1,56 @@
+file_path = 'ARR_01.dat';
+fid = fopen(file_path, 'r');
+datatype = 'float32';
+data = fread(fid, [250, 5], datatype);
+fclose(fid);
+sampling_rate = 1000;  % Replace with your sampling rate
+num_channels = 2;      % Replace with the actual number of channels
+time = (0:(length(data)-1)) / sampling_rate;
+figure;
+for i = 1:num_channels
+    subplot(num_channels, 1, i);
+    plot(time, data(:, i));
+    title(['Channel ' num2str(i)]);
+end
+xlabel('Time (seconds)');
+low_freq = 0.5;  % Replace with your low-frequency cutoff
+high_freq = 50;   % Replace with your high-frequency cutoff
+low_freq = 0.5;  % Replace with your low-frequency cutoff
+high_freq = 50;   % Replace with your high-frequency cutoff
+data = data(all(isfinite(data), 2), :);
+filter_order = 4;
+[b, a] = butter(filter_order, [low_freq, high_freq] / (sampling_rate / 2), 'bandpass');
+filtered_data = filtfilt(b, a, data);
+num_samples = size(filtered_data, 1);
+time = (0:(num_samples-1)) / sampling_rate;
+figure;
+for i = 1:num_channels
+    subplot(num_channels, 1, i);
+    plot(time, filtered_data(:, i));
+    title(['Filtered Channel ' num2str(i)]);
+end
+xlabel('Time (seconds)');
+threshold_value = 0.5;  % Replace with an appropriate threshold value
+[peaks, locations] = findpeaks(filtered_data(:, 1), 'MinPeakHeight', threshold_value);
+interbeat_intervals = diff(locations) / sampling_rate;
+tachycardia_threshold = 0.6;  % seconds
+bradycardia_threshold = 1.2;  % seconds
+% Identify tachycardia and bradycardia
+tachycardia_indices = find(interbeat_intervals < tachycardia_threshold);
+bradycardia_indices = find(interbeat_intervals > bradycardia_threshold);
+% Display results
+disp('Tachycardia Indices:');
+disp(tachycardia_indices);
+disp('Bradycardia Indices:');
+disp(bradycardia_indices);
+% Plot the ECG signal with identified arrhythmias
+figure;
+plot(time, filtered_data(:, 1));
+hold on;
+scatter(time(locations(tachycardia_indices)), filtered_data(locations(tachycardia_indices), 1), 'r', 'filled');
+scatter(time(locations(bradycardia_indices)), filtered_data(locations(bradycardia_indices), 1), 'g', 'filled');
+title('ECG Signal with Arrhythmias');
+xlabel('Time (seconds)');
+ylabel('Amplitude');
+legend('Filtered ECG', 'Tachycardia', 'Bradycardia');
+hold off;
